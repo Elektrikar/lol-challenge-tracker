@@ -45,11 +45,11 @@ const props = defineProps<{
 const championBuildLink = (champ: Champion) => {
   switch (props.challenge.mode) {
     case "Arena":
-      return `https://www.op.gg/lol/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
+      return `https://www.metasrc.com/lol/arena/champions/${champ.alias.toLowerCase()}/build`
     case "Aram":
-      return `https://aram.zone/champion/${champ.alias.toLowerCase()}`
+      return `https://www.metasrc.com/lol/aram/champions/${champ.alias.toLowerCase()}/build`
     case "Rift":
-      return `https://op.gg/lol/champions/${champ.alias.toLowerCase()}/build`
+      return `https://coachless.gg/builds/${champ.alias.toLowerCase()}`
   }
 }
 
