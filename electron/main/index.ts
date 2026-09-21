@@ -1,6 +1,8 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 import path from "node:path"
 import os from "node:os"
 import LCUConnector from "lcu-connector"
@@ -21,6 +23,7 @@ interface LCUCredentials {
 }
 
 const require = createRequire(import.meta.url)
+const execFileAsync = promisify(execFile)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 process.env.APP_ROOT = path.join(__dirname, "../..")
@@ -86,7 +89,10 @@ async function createWindow() {
   return win
 }
 
-function sendCredentials(win: BrowserWindow, credentials: LCUCredentials) {
+function sendCredentials(
+  win: BrowserWindow,
+  credentials: LCUCredentials | null,
+) {
   console.log(`Received credentials : ${JSON.stringify(credentials)}`)
   win.webContents.send("credentials", credentials)
 }
@@ -131,6 +137,9 @@ async function connectWebsocket(
         break
       case LCUEvents.ChampSelectSession:
         const champId = parseSessionEvent(event.data)
+        if (champId === undefined) {
+          break
+        }
         if (champId < 0) {
           win.webContents.send("pick", null)
         }
@@ -158,8 +167,28 @@ async function connectWebsocket(
   })
 }
 
-function connectToLcu(win: BrowserWindow) {
-  const connector = new LCUConnector()
+async function findLeagueClientPath() {
+  if (process.platform !== "win32") return undefined
+
+  try {
+    const { stdout } = await execFileAsync("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      "(Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\").CommandLine",
+    ])
+    const match = stdout.match(/--install-directory=(.*?)(?=\s+\"?--|\r?\n|$)/)
+    const installDirectory = match?.[1]?.replace(/^\"|\"$/g, "").trim()
+    return installDirectory
+      ? path.join(installDirectory.trim(), "LeagueClient.exe")
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function connectToLcu(win: BrowserWindow) {
+  const connectorPath = await findLeagueClientPath()
+  const connector = new LCUConnector(connectorPath)
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
