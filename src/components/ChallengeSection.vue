@@ -155,10 +155,7 @@ const isCrowdFavoriteDone = (champ: Champion) => {
 
     <div class="selected-champ-container">
       <div class="selected-champ-preview-block">
-        <div class="selected-champ-text">Selected Champion</div>
-        <div v-if="selectedChamp" class="selected-champ-done-label">
-          <span class="selected-champion-name">{{ selectedChamp.name }}</span>
-        </div>
+        <div class="selected-champ-text">Selected</div>
         <div class="champion">
           <a
             :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
@@ -194,6 +191,9 @@ const isCrowdFavoriteDone = (champ: Champion) => {
             :stats="stats[selectedChamp.alias]"
           />
         </div>
+        <p v-if="selectedChamp" class="champion-name selected-champion-name">
+          {{ selectedChamp.name }}
+        </p>
       </div>
 
       <div
@@ -302,21 +302,11 @@ input.search {
 
 .selected-champ-preview-block {
   flex: 0 0 auto;
+  width: 130px;
 }
 
 .selected-champ-text {
   margin-bottom: 4px;
-}
-
-.selected-champ-done-label {
-  text-wrap: nowrap;
-  z-index: 2;
-  padding: 4px;
-}
-
-.selected-champion-name {
-  color: #c8aa6e;
-  white-space: nowrap;
 }
 
 .champions-container {
@@ -372,6 +362,10 @@ p {
   padding: 4px;
   color: #a09b8c;
   white-space: nowrap;
+}
+
+.selected-champ-preview-block .selected-champion-name {
+  color: #c8aa6e;
 }
 
 img {
