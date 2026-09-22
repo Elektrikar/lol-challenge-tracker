@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron"
+import { execFile } from "node:child_process"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import { execFile } from "node:child_process"
@@ -168,28 +169,36 @@ async function connectWebsocket(
   })
 }
 
-async function findLeagueClientPath() {
-  if (process.platform !== "win32") return undefined
+function findLeagueClientPath() {
+  if (process.platform !== "win32") return new Promise<string | undefined>(() => {})
 
-  try {
-    const { stdout } = await execFileAsync("powershell.exe", [
-      "-NoProfile",
-      "-Command",
-      "(Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\").CommandLine",
-    ])
-    const match = stdout.match(/--install-directory=(.*?)(?=\s+\"?--|\r?\n|$)/)
-    const installDirectory = match?.[1]?.replace(/^\"|\"$/g, "").trim()
-    return installDirectory
-      ? path.join(installDirectory.trim(), "LeagueClient.exe")
-      : undefined
-  } catch {
-    return undefined
-  }
+  return new Promise<string | undefined>((resolve) => {
+    execFile(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\" | Select-Object -First 1 -ExpandProperty CommandLine)",
+      ],
+      { windowsHide: true },
+      (_error, stdout) => {
+        const installDirectory = stdout.match(
+          /--install-directory=([^\"]+?)(?:\"|(?=\s+--|$))/,
+        )?.[1]
+
+        resolve(
+          installDirectory
+            ? path.join(installDirectory, "LeagueClient.exe")
+            : undefined,
+        )
+      },
+    )
+  })
 }
 
-async function connectToLcu(win: BrowserWindow) {
-  const connectorPath = await findLeagueClientPath()
-  const connector = new LCUConnector(connectorPath)
+function connectToLcu(win: BrowserWindow, clientPath: string) {
+  const connector = new LCUConnector(clientPath)
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
@@ -206,11 +215,12 @@ async function connectToLcu(win: BrowserWindow) {
 const store = new Store()
 
 async function main() {
+  const clientPath = await findLeagueClientPath()
   await app.whenReady()
   const win = await createWindow()
 
-  ipcMain.on("app-ready", () => connectToLcu(win))
-  ipcMain.on("connect-to-lcu", () => connectToLcu(win))
+  ipcMain.on("app-ready", () => connectToLcu(win, clientPath))
+  ipcMain.on("connect-to-lcu", () => connectToLcu(win, clientPath))
 
   ipcMain.on("store-set", (_, key, value) => {
     store.set(key, value)
