@@ -1,8 +1,9 @@
-# LoL Challenge Tracker
+# LoL Challenge Tracker (custom)
 
-> A simple app to see the advancement of League of Legends challnges where you need to track champions.
+> Fork of https://github.com/Nyquase/lol-challenge-tracker
+> Shows crowd favorites when in arena champion select
 
-![screenshot](screenshot.png)
+<img width="1566" height="997" alt="image" src="https://github.com/user-attachments/assets/ff203337-ebb2-4a03-9553-2f2f35c7e080" />
 
 # How to use
 
