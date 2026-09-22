@@ -136,6 +136,7 @@ async function connectWebsocket(
         win.webContents.send("end-of-game")
         break
       case LCUEvents.ChampSelectSession:
+        win.webContents.send("champ-select-session", event.data)
         const champId = parseSessionEvent(event.data)
         if (champId === undefined) {
           break

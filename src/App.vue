@@ -24,6 +24,7 @@ const summoner = ref<Summoner | null>(null)
 const challenges = ref<Challenge[]>([])
 const stats = ref<AramStats | null>(null)
 const selectedChamp = ref<Challenge["champions"][number] | null>(null)
+const crowdFavoriteChampionIds = ref<number[]>([])
 
 onMounted(async () => {
   window.ipcRenderer.send("app-ready")
@@ -93,6 +94,88 @@ const updateSettings = (settings: StoredSettings) => {
   window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
 }
 
+const crowdFavoriteChampions = computed(() => {
+  if (!allChampions.value) return []
+
+  const championOrder = new Map(
+    allChampions.value.map((champ, index) => [champ.id, index]),
+  )
+
+  return Array.from(new Set(crowdFavoriteChampionIds.value))
+    .map((id) => allChampions.value!.find((champ) => champ.id === id))
+    .filter((champ): champ is Champion => Boolean(champ))
+    .sort((a, b) => {
+      const aIndex = championOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER
+      const bIndex = championOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER
+      return aIndex - bIndex
+    })
+})
+
+const isArenaChampSelect = async () => {
+  if (!credentials.value) return false
+
+  try {
+    const session = await makeLCURequest<{
+      queueId?: number
+      gameId?: number
+      localPlayerCellId?: number
+      isCustomGame?: boolean
+    } | null>(
+      credentials.value,
+      "/lol-champ-select/v1/session",
+    )
+
+    if (!session || typeof session !== "object") return false
+
+    return Number(session.queueId) === 1750
+  } catch {
+    return false
+  }
+}
+
+const fetchCrowdFavoriteChampionIds = async () => {
+  if (!credentials.value) {
+    crowdFavoriteChampionIds.value = []
+    return
+  }
+
+  const isArena = await isArenaChampSelect()
+  if (!isArena) {
+    crowdFavoriteChampionIds.value = []
+    return
+  }
+
+  try {
+    const payload = await makeLCURequest<
+      number[] | { championIds?: number[] } | null
+    >(
+      credentials.value,
+      "/lol-lobby-team-builder/champ-select/v1/crowd-favorte-champion-list",
+    )
+
+    console.log(
+      "[Arena crowd favorites raw response]",
+      JSON.stringify(payload, null, 2),
+    )
+
+    const ids = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.championIds)
+        ? payload.championIds
+        : []
+
+    crowdFavoriteChampionIds.value = ids.filter((id): id is number =>
+      Number.isFinite(id),
+    )
+  } catch (error) {
+    console.warn(
+      "[Arena crowd favorites fetch unavailable in this lobby state]",
+      error,
+    )
+    crowdFavoriteChampionIds.value = []
+  }
+}
+
 const handlePickEvent = (champId: number | null) => {
   if (champId === null) {
     selectedChamp.value = null
@@ -107,6 +190,7 @@ const handlePickEvent = (champId: number | null) => {
 
 window.ipcRenderer.on("end-of-game", () => {
   selectedChamp.value = null
+  crowdFavoriteChampionIds.value = []
   fetchLCU()
 })
 
@@ -114,11 +198,16 @@ window.ipcRenderer.on("pick", async (_event, champId: number | null) => {
   handlePickEvent(champId)
 })
 
+window.ipcRenderer.on("champ-select-session", async () => {
+  await fetchCrowdFavoriteChampionIds()
+})
+
 window.ipcRenderer.on(
   "credentials",
   async (_event, newCredentials: LCUCredentials) => {
     credentials.value = newCredentials
     await fetchLCU()
+    await fetchCrowdFavoriteChampionIds()
     const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
       "store-get",
       "selected-challenge-index",
@@ -150,6 +239,7 @@ window.ipcRenderer.on(
     if (localPickedChamp) {
       handlePickEvent(localPickedChamp.championId)
     }
+    await fetchCrowdFavoriteChampionIds()
   },
 )
 
@@ -187,6 +277,7 @@ const challengeOptions = computed(() => {
         :challenge="challenges[selectedChallengeIndex]"
         :all-champions="allChampions"
         :selectedChamp="selectedChamp"
+        :crowdFavoriteChampions="crowdFavoriteChampions"
         :isColoredWhenDone="isColoredWhenDone"
         :showChampionNames="showChampionNames"
         :stats="stats"

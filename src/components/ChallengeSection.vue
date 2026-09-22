@@ -37,6 +37,7 @@ const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
   selectedChamp: Challenge["champions"][number] | null
+  crowdFavoriteChampions: Champion[]
   isColoredWhenDone: boolean
   showChampionNames: boolean
   stats: AramStats | null
@@ -105,6 +106,10 @@ const filterOptions = computed(() => {
     value: filter,
   }))
 })
+
+const isCrowdFavoriteDone = (champ: Champion) => {
+  return props.challenge.champions.some((c) => c.id === champ.id && c.done)
+}
 </script>
 
 <template>
@@ -149,7 +154,7 @@ const filterOptions = computed(() => {
     </div>
 
     <div class="selected-champ-container">
-      <div>
+      <div class="selected-champ-preview-block">
         <div class="selected-champ-text">Champ Select Preview</div>
         <div v-if="selectedChamp" class="selected-champ-done-label">
           <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
@@ -189,6 +194,32 @@ const filterOptions = computed(() => {
             "
             :stats="stats[selectedChamp.alias]"
           />
+        </div>
+      </div>
+
+      <div
+        v-if="challenge.mode === 'Arena' && crowdFavoriteChampions.length > 0"
+        class="crowd-favorites-row"
+      >
+        <div
+          v-for="champ in crowdFavoriteChampions"
+          :key="champ.id"
+          class="champion crowd-favorite-champion"
+        >
+          <a :href="championBuildLink(champ)" target="_blank">
+            <img
+              :class="{
+                greyed: isColoredWhenDone
+                  ? isCrowdFavoriteDone(champ)
+                  : !isCrowdFavoriteDone(champ),
+              }"
+              :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
+              :alt="champ.id.toString()"
+            />
+            <div v-if="isCrowdFavoriteDone(champ)" class="check-mark">
+              <FontAwesomeIcon :icon="faCheck" />
+            </div>
+          </a>
         </div>
       </div>
     </div>
@@ -260,11 +291,38 @@ input.search {
 
 .selected-champ-container {
   display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 16px;
   margin-bottom: 32px;
+}
+
+.selected-champ-preview-block {
+  flex: 0 0 auto;
 }
 
 .selected-champ-text {
   margin-bottom: 4px;
+}
+
+.crowd-favorites-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-left: 0;
+  padding-top: 22px;
+}
+
+.crowd-favorite-champion a {
+  width: 128px;
+  height: 128px;
+}
+
+.crowd-favorite-champion img {
+  width: 128px;
+  height: 128px;
 }
 
 .selected-champ-done-label {
