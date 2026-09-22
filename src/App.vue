@@ -150,12 +150,7 @@ const fetchCrowdFavoriteChampionIds = async () => {
       number[] | { championIds?: number[] } | null
     >(
       credentials.value,
-      "/lol-lobby-team-builder/champ-select/v1/crowd-favorte-champion-list",
-    )
-
-    console.log(
-      "[Arena crowd favorites raw response]",
-      JSON.stringify(payload, null, 2),
+      "/lol-lobby-team-builder/champ-select/v1/crowd-favorte-champion-list", // this is not a typo, the endpoint is actually spelled "favorte"
     )
 
     const ids = Array.isArray(payload)

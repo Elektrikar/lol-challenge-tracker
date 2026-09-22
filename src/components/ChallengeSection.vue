@@ -155,10 +155,9 @@ const isCrowdFavoriteDone = (champ: Champion) => {
 
     <div class="selected-champ-container">
       <div class="selected-champ-preview-block">
-        <div class="selected-champ-text">Champ Select Preview</div>
+        <div class="selected-champ-text">Selected Champion</div>
         <div v-if="selectedChamp" class="selected-champ-done-label">
-          <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
-          {{ selectedChamp.done ? "Done" : "Not Done" }}
+          <span class="selected-champion-name">{{ selectedChamp.name }}</span>
         </div>
         <div class="champion">
           <a
@@ -198,28 +197,32 @@ const isCrowdFavoriteDone = (champ: Champion) => {
       </div>
 
       <div
-        v-if="challenge.mode === 'Arena' && crowdFavoriteChampions.length > 0"
-        class="crowd-favorites-row"
+        v-if="crowdFavoriteChampions.length > 0"
+        class="crowd-favorites-block"
       >
-        <div
-          v-for="champ in crowdFavoriteChampions"
-          :key="champ.id"
-          class="champion crowd-favorite-champion"
-        >
-          <a :href="championBuildLink(champ)" target="_blank">
-            <img
-              :class="{
-                greyed: isColoredWhenDone
-                  ? isCrowdFavoriteDone(champ)
-                  : !isCrowdFavoriteDone(champ),
-              }"
-              :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
-              :alt="champ.id.toString()"
-            />
-            <div v-if="isCrowdFavoriteDone(champ)" class="check-mark">
-              <FontAwesomeIcon :icon="faCheck" />
-            </div>
-          </a>
+        <div class="crowd-favorites-title">Crowd Favorites</div>
+        <div class="champions-container crowd-favorites-row">
+          <div
+            v-for="champ in crowdFavoriteChampions"
+            :key="champ.id"
+            class="champion crowd-favorite-champion"
+          >
+            <a :href="championBuildLink(champ)" target="_blank">
+              <img
+                :class="{
+                  greyed: isColoredWhenDone
+                    ? isCrowdFavoriteDone(champ)
+                    : !isCrowdFavoriteDone(champ),
+                }"
+                :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
+                :alt="champ.id.toString()"
+              />
+              <div v-if="isCrowdFavoriteDone(champ)" class="check-mark">
+                <FontAwesomeIcon :icon="faCheck" />
+              </div>
+            </a>
+            <p class="champion-name" v-if="showChampionNames">{{ champ.name }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -290,9 +293,9 @@ input.search {
 }
 
 .selected-champ-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
   align-items: flex-start;
-  justify-content: flex-start;
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -303,26 +306,6 @@ input.search {
 
 .selected-champ-text {
   margin-bottom: 4px;
-}
-
-.crowd-favorites-row {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 8px;
-  margin-left: 0;
-  padding-top: 22px;
-}
-
-.crowd-favorite-champion a {
-  width: 128px;
-  height: 128px;
-}
-
-.crowd-favorite-champion img {
-  width: 128px;
-  height: 128px;
 }
 
 .selected-champ-done-label {
@@ -340,6 +323,14 @@ input.search {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.crowd-favorites-row {
+  align-content: flex-start;
+}
+
+.crowd-favorites-title {
+  margin-bottom: 4px;
 }
 
 h1 {
